@@ -14,7 +14,7 @@ class User extends Authenticatable implements FilamentUser
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'nome',
+        'name',
         'cognome',
         'email',
         'password',
@@ -43,5 +43,10 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return false;
+    }
+
+    public function getNomeCompletoAttribute(): string
+    {
+        return "{$this->name} {$this->cognome}";
     }
 }

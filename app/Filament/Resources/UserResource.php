@@ -32,7 +32,7 @@ class UserResource extends Resource
                     ->required()
                     ->visible(fn ($livewire) => auth()->user()->role === 'admin'),
 
-                Forms\Components\TextInput::make('nome')
+                Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
 
@@ -77,7 +77,7 @@ class UserResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nome_completo')
                     ->label('Nome Completo')
-                    ->searchable(['nome', 'cognome'])
+                    ->searchable(['name', 'cognome'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('email')
