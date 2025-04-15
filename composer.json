@@ -9,6 +9,7 @@
         "filament/filament": "^3.2",
         "filament/notifications": "^3.2",
         "guzzlehttp/guzzle": "^7.2",
+        "laravel-lang/lang": "^15.2",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8"

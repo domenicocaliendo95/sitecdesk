@@ -67,8 +67,9 @@ class ViewTicket extends ViewRecord
                                     ->columnSpan('full'),
                             ])
                             ->columns(2)
-                            ->filter(fn ($discussione) => !$discussione->interno), // Nascondi le note interne ai clienti
+                            //->filter(fn ($discussione) => !$discussione->interno), // Nascondi le note interne ai clienti
                     ]),
+
             ]);
     }
 
