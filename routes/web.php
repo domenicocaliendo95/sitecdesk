@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AttachmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,4 +16,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+
+// Routes per il download degli allegati
+Route::middleware(['auth'])->group(function () {
+    Route::get('/ticket/attachment/{id}/download', [AttachmentController::class, 'download'])
+        ->name('ticket.download-attachment');
 });

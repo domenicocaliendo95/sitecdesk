@@ -11,6 +11,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Action;
 use App\Models\Discussione;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Storage;
 
 class ViewTicket extends ViewRecord
 {
@@ -51,9 +52,42 @@ class ViewTicket extends ViewRecord
                     ])
                     ->columns(3),
 
+                Infolists\Components\Section::make('Allegati Ticket')
+                    ->schema([
+                        Infolists\Components\RepeatableEntry::make('allegati')
+                            ->label('')
+                            ->schema([
+                                Infolists\Components\TextEntry::make('nome_originale')
+                                    ->label('Nome file'),
+
+                                Infolists\Components\TextEntry::make('mime_type')
+                                    ->label('Tipo'),
+
+                                Infolists\Components\TextEntry::make('size')
+                                    ->label('Dimensione')
+                                    ->formatStateUsing(fn (int $state): string => number_format($state / 1024, 2) . ' KB'),
+
+                                Infolists\Components\TextEntry::make('created_at')
+                                    ->label('Caricato il')
+                                    ->dateTime(),
+
+                                Infolists\Components\TextEntry::make('path')
+                                    ->label('Download')
+                                    ->formatStateUsing(fn (string $state, $record): string =>
+                                        "<a href='" . route('ticket.download-attachment', $record->id) . "'
+                                            class='text-primary-600 hover:text-primary-500' target='_blank'>
+                                            Scarica
+                                        </a>")
+                                    ->html(),
+                            ])
+                            ->columns(5)
+                    ])
+                    ->visible(fn ($record) => $record->allegati()->count() > 0),
+
                 Infolists\Components\Section::make('Discussioni')
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('discussioni')
+                        Infolists\Components\RepeatableEntry::make('discussioni_pubbliche')
+                            ->label('')
                             ->schema([
                                 Infolists\Components\TextEntry::make('user.nome_completo')
                                     ->label('Da'),
@@ -65,9 +99,22 @@ class ViewTicket extends ViewRecord
                                 Infolists\Components\TextEntry::make('messaggio')
                                     ->html()
                                     ->columnSpan('full'),
+
+                                Infolists\Components\RepeatableEntry::make('allegati')
+                                    ->label('Allegati')
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('nome_originale')
+                                            ->label('File')
+                                            ->formatStateUsing(fn (string $state, $record): string =>
+                                                "<a href='" . route('ticket.download-attachment', $record->id) . "'
+                                                    class='text-primary-600 hover:text-primary-500' target='_blank'>
+                                                    " . $state . "
+                                                </a>")
+                                            ->html(),
+                                    ])
+                                    ->columnSpan('full')
                             ])
-                            ->columns(2)
-                            //->filter(fn ($discussione) => !$discussione->interno), // Nascondi le note interne ai clienti
+                            ->columns(2),
                     ]),
 
             ]);
@@ -86,6 +133,7 @@ class ViewTicket extends ViewRecord
                         ->multiple()
                         ->directory('discussion-attachments')
                         ->preserveFilenames()
+                        ->downloadable()
                 ])
                 ->action(function (array $data): void {
                     $discussione = new Discussione();
@@ -95,14 +143,16 @@ class ViewTicket extends ViewRecord
                     $discussione->interno = false; // I clienti non possono creare note interne
                     $discussione->save();
 
-                    if (isset($data['allegati'])) {
+                    // Gestione allegati
+                    if (isset($data['allegati']) && !empty($data['allegati'])) {
                         foreach ($data['allegati'] as $allegato) {
+                            // Filament restituisce già il path del file salvato
                             $discussione->allegati()->create([
-                                'nome_originale' => $allegato->getClientOriginalName(),
-                                'filename' => $allegato->getFilename(),
-                                'path' => $allegato->store('discussion-attachments'),
-                                'mime_type' => $allegato->getMimeType(),
-                                'size' => $allegato->getSize(),
+                                'nome_originale' => basename($allegato),
+                                'filename' => basename($allegato),
+                                'path' => $allegato,
+                                'mime_type' => Storage::disk('public')->exists($allegato) ? Storage::disk('public')->mimeType($allegato) : 'application/octet-stream',
+                                'size' => Storage::disk('public')->exists($allegato) ? Storage::disk('public')->size($allegato) : 0,
                                 'uploaded_by' => auth()->id(),
                             ]);
                         }

@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Support\Facades\Storage;
 
 class TicketResource extends Resource
 {
@@ -81,35 +82,15 @@ class TicketResource extends Resource
 
                 Section::make('Allegati')
                     ->schema([
-                        FileUpload::make('allegati')
+                        FileUpload::make('allegati_temp')
+                            ->label('Allegati')
                             ->multiple()
                             ->directory('ticket-attachments')
                             ->preserveFilenames()
                             ->maxFiles(10)
                             ->downloadable()
+                            ->disk('public')
                     ]),
-
-                Section::make('Discussione')
-                    ->schema([
-                        Forms\Components\Repeater::make('discussioni')
-                            ->relationship('discussioni')
-                            ->schema([
-                                Forms\Components\RichEditor::make('messaggio')
-                                    ->required(),
-                                Forms\Components\Toggle::make('interno')
-                                    ->label('Nota Interna')
-                                    ->default(false)
-                                    ->visible(fn () => in_array(auth()->user()->role, ['admin', 'collaboratore'])),
-                                FileUpload::make('allegati')
-                                    ->multiple()
-                                    ->directory('discussion-attachments')
-                                    ->preserveFilenames()
-                            ])
-                            ->defaultItems(0)
-                            ->columnSpan('full')
-                    ])
-                    ->collapsible()
-                    ->collapsed()
             ]);
     }
 
@@ -150,8 +131,38 @@ class TicketResource extends Resource
                     ->label('Creato il')
                     ->dateTime()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('ultima_risposta')
+                    ->label('Ultima risposta')
+                    ->dateTime()
+                    ->getStateUsing(function ($record) {
+                        $ultimaDiscussione = $record->discussioni()
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        return $ultimaDiscussione ? $ultimaDiscussione->created_at : $record->created_at;
+                    })
+                    ->sortable(query: function ($query, $direction) {
+                        return $query
+                            ->leftJoin('discussioni', 'tickets.id', '=', 'discussioni.ticket_id')
+                            ->select('tickets.*')
+                            ->selectRaw('MAX(COALESCE(discussioni.created_at, tickets.created_at)) as latest_activity')
+                            ->groupBy('tickets.id', 'tickets.oggetto', 'tickets.corpo', 'tickets.creato_da',
+                                'tickets.assegnato_a', 'tickets.categoria_id', 'tickets.stato',
+                                'tickets.created_at', 'tickets.updated_at', 'tickets.deleted_at')
+                            ->orderBy('latest_activity', $direction);
+                    }),
+
+                Tables\Columns\IconColumn::make('has_attachments')
+                    ->label('Allegati')
+                    ->boolean()
+                    ->getStateUsing(fn ($record) => $record->allegati()->count() > 0)
+                    ->trueIcon('heroicon-o-paper-clip')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray'),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('ultima_risposta', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('stato')
                     ->options([
@@ -185,12 +196,18 @@ class TicketResource extends Resource
                         auth()->user()->role === 'admin' ||
                         $record->assegnato_a === auth()->id()
                     ),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with(['discussioni', 'creatore', 'assegnato', 'categoria']);
 
         if (auth()->user()->role === 'collaboratore') {
             $query->where('assegnato_a', auth()->id());

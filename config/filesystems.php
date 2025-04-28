@@ -44,6 +44,22 @@ return [
             'throw' => false,
         ],
 
+        'ticket-attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/ticket-attachments'),
+            'url' => env('APP_URL').'/storage/ticket-attachments',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
+        'discussion-attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/discussion-attachments'),
+            'url' => env('APP_URL').'/storage/discussion-attachments',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

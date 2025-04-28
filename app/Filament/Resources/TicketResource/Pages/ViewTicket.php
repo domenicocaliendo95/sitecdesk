@@ -13,8 +13,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Action;
 use App\Models\Discussione;
-use Filament\Notifications\Notification; // Aggiungiamo questo
-use Filament\Notifications\Actions\Action as NotificationAction; // E questo se necessario
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Storage;
 
 class ViewTicket extends ViewRecord
 {
@@ -42,6 +42,7 @@ class ViewTicket extends ViewRecord
                     ->multiple()
                     ->directory('discussion-attachments')
                     ->preserveFilenames()
+                    ->downloadable()
             ]);
     }
 
@@ -79,6 +80,38 @@ class ViewTicket extends ViewRecord
                     ])
                     ->columns(3),
 
+                Infolists\Components\Section::make('Allegati Ticket')
+                    ->schema([
+                        Infolists\Components\RepeatableEntry::make('allegati')
+                            ->label('')
+                            ->schema([
+                                Infolists\Components\TextEntry::make('nome_originale')
+                                    ->label('Nome file'),
+
+                                Infolists\Components\TextEntry::make('mime_type')
+                                    ->label('Tipo'),
+
+                                Infolists\Components\TextEntry::make('size')
+                                    ->label('Dimensione')
+                                    ->formatStateUsing(fn (int $state): string => number_format($state / 1024, 2) . ' KB'),
+
+                                Infolists\Components\TextEntry::make('created_at')
+                                    ->label('Caricato il')
+                                    ->dateTime(),
+
+                                Infolists\Components\TextEntry::make('path')
+                                    ->label('Download')
+                                    ->formatStateUsing(fn (string $state, $record): string =>
+                                        "<a href='" . route('ticket.download-attachment', $record->id) . "'
+                                            class='text-primary-600 hover:text-primary-500' target='_blank'>
+                                            Scarica
+                                        </a>")
+                                    ->html(),
+                            ])
+                            ->columns(5)
+                    ])
+                    ->visible(fn ($record) => $record->allegati()->count() > 0),
+
                 Infolists\Components\Section::make('Discussioni')
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('discussioni')
@@ -102,9 +135,23 @@ class ViewTicket extends ViewRecord
                                         false => 'heroicon-o-eye',
                                     })
                                     ->color(fn (bool $state): string => match ($state) {
-                                        true => 'danger', // Questo renderà l'icona rossa per le note interne
+                                        true => 'danger',
                                         false => 'success',
-                                    })
+                                    }),
+
+                                Infolists\Components\RepeatableEntry::make('allegati')
+                                    ->label('Allegati')
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('nome_originale')
+                                            ->label('File')
+                                            ->formatStateUsing(fn (string $state, $record): string =>
+                                                "<a href='" . route('ticket.download-attachment', $record->id) . "'
+                                                    class='text-primary-600 hover:text-primary-500' target='_blank'>
+                                                    " . $state . "
+                                                </a>")
+                                            ->html(),
+                                    ])
+                                    ->columnSpan('full')
                             ])
                             ->columns(3),
                     ]),
@@ -127,6 +174,7 @@ class ViewTicket extends ViewRecord
                         ->multiple()
                         ->directory('discussion-attachments')
                         ->preserveFilenames()
+                        ->downloadable()
                 ])
                 ->action(function (array $data): void {
                     $discussione = new Discussione();
@@ -136,21 +184,21 @@ class ViewTicket extends ViewRecord
                     $discussione->interno = $data['interno'] ?? false;
                     $discussione->save();
 
-                    // Gestione allegati se presenti
-                    if (isset($data['allegati'])) {
+                    // Gestione allegati
+                    if (isset($data['allegati']) && !empty($data['allegati'])) {
                         foreach ($data['allegati'] as $allegato) {
+                            // Filament restituisce già il path del file salvato
                             $discussione->allegati()->create([
-                                'nome_originale' => $allegato->getClientOriginalName(),
-                                'filename' => $allegato->getFilename(),
-                                'path' => $allegato->store('discussion-attachments'),
-                                'mime_type' => $allegato->getMimeType(),
-                                'size' => $allegato->getSize(),
+                                'nome_originale' => basename($allegato),
+                                'filename' => basename($allegato),
+                                'path' => $allegato,
+                                'mime_type' => Storage::disk('public')->exists($allegato) ? Storage::disk('public')->mimeType($allegato) : 'application/octet-stream',
+                                'size' => Storage::disk('public')->exists($allegato) ? Storage::disk('public')->size($allegato) : 0,
                                 'uploaded_by' => auth()->id(),
                             ]);
                         }
                     }
 
-                    // Sostituiamo il notify con il nuovo sistema di notifiche
                     Notification::make()
                         ->title('Risposta aggiunta con successo')
                         ->success()

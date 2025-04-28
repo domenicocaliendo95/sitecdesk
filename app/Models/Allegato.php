@@ -9,13 +9,17 @@ class Allegato extends Model
 {
     use HasFactory;
 
+    protected $table = 'allegati';
+
     protected $fillable = [
         'nome_originale',
         'filename',
         'path',
         'mime_type',
         'size',
-        'uploaded_by'
+        'uploaded_by',
+        'attachable_id',
+        'attachable_type'
     ];
 
     public function attachable()

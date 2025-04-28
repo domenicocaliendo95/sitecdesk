@@ -39,6 +39,11 @@ class Ticket extends Model
         return $this->hasMany(Discussione::class);
     }
 
+    public function discussioni_pubbliche()
+    {
+        return $this->hasMany(Discussione::class)->where('interno', false);
+    }
+
     public function allegati()
     {
         return $this->morphMany(Allegato::class, 'attachable');

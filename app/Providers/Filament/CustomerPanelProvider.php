@@ -16,6 +16,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Widgets;
 
 class CustomerPanelProvider extends PanelProvider
 {
@@ -36,6 +37,12 @@ class CustomerPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Customer/Pages'), for: 'App\\Filament\\Customer\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+            ])
+            ->widgets([
+                Widgets\AccountWidget::class,
+                \App\Filament\Widgets\AdminStatsOverview::class,
+                \App\Filament\Widgets\TicketStatusChart::class,
+                \App\Filament\Widgets\RecentTickets::class,
             ])
             ->middleware([
                 EncryptCookies::class,
