@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Customer\Widgets;
+namespace App\Filament\Widgets;
 
 use App\Models\Ticket;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;

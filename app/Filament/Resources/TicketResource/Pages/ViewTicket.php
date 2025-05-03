@@ -155,10 +155,11 @@ class ViewTicket extends ViewRecord
                             ])
                             ->columns(3),
                     ]),
+
             ]);
     }
 
-    protected function getHeaderActions(): array
+    protected function getFooterActions(): array
     {
         return [
             Action::make('aggiungi_discussione')

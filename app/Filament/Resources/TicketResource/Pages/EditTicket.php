@@ -16,4 +16,9 @@ class EditTicket extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getFormActionsPosition(): string
+    {
+        return 'footer'; // oppure 'top' per default
+    }
 }

@@ -196,7 +196,7 @@ class TicketResource extends Resource
                         auth()->user()->role === 'admin' ||
                         $record->assegnato_a === auth()->id()
                     ),
-            ])
+            ])->actionsPosition(Tables\Enums\ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

@@ -42,4 +42,9 @@ class CreateTicket extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function getFormActionsPosition(): string
+    {
+        return 'footer'; // oppure 'top' per default
+    }
 }
