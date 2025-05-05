@@ -159,12 +159,41 @@ class ViewTicket extends ViewRecord
             ]);
     }
 
-    protected function getFooterActions(): array
+    protected function getHeaderActions(): array
     {
         return [
             Action::make('aggiungi_discussione')
                 ->label('Aggiungi risposta')
                 ->form([
+                    \Filament\Forms\Components\Select::make('assegnato_a')
+                        ->label('Assegna a')
+                        ->options(function () {
+                            return \App\Models\User::whereIn('role', ['admin', 'collaboratore'])
+                                ->get()
+                                ->mapWithKeys(function ($user) {
+                                    return [$user->id => $user->nome . ' ' . $user->cognome];
+                                });
+                        })
+                        ->default(fn() => $this->record->assegnato_a)
+                        ->searchable()
+                        ->preload()
+                        ->placeholder('Seleziona un collaboratore')
+                        ->visible(fn () => auth()->user()->role === 'admin' || auth()->user()->role === 'collaboratore'),
+
+                    \Filament\Forms\Components\Select::make('stato')
+                        ->label('Stato ticket')
+                        ->options([
+                            'nuovo' => 'Nuovo',
+                            'aperto' => 'Aperto',
+                            'in_lavorazione' => 'In Lavorazione',
+                            'in_attesa' => 'In Attesa',
+                            'risolto' => 'Risolto',
+                            'chiuso' => 'Chiuso',
+                        ])
+                        ->default('aperto')
+                        ->required()
+                        ->visible(fn () => auth()->user()->role === 'admin' || auth()->user()->role === 'collaboratore'),
+
                     RichEditor::make('messaggio')
                         ->label('Messaggio')
                         ->required(),
@@ -178,6 +207,24 @@ class ViewTicket extends ViewRecord
                         ->downloadable()
                 ])
                 ->action(function (array $data): void {
+                    // Aggiorna assegnazione e stato del ticket se forniti
+                    if (isset($data['assegnato_a']) || isset($data['stato'])) {
+                        $updateData = [];
+
+                        if (isset($data['assegnato_a'])) {
+                            $updateData['assegnato_a'] = $data['assegnato_a'];
+                        }
+
+                        if (isset($data['stato'])) {
+                            $updateData['stato'] = $data['stato'];
+                        } else {
+                            // Se non specificato, riapri il ticket di default
+                            $updateData['stato'] = 'aperto';
+                        }
+
+                        $this->record->update($updateData);
+                    }
+
                     $discussione = new Discussione();
                     $discussione->ticket_id = $this->record->id;
                     $discussione->user_id = auth()->id();
