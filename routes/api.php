@@ -52,9 +52,17 @@ Route::prefix('v1')->group(function () {
         Route::get('/alltickets', [TicketController::class, 'allTickets']);
         Route::get('/ticket/{id}', [TicketController::class, 'showTicket']);
         Route::post('/ticket', [TicketController::class, 'createTicket']);
-        Route::post('/tickets/{ticket}/reply', fn () => response()->json(['todo' => true]));
+        Route::post('/ticket/discussion/{id}', [TicketController::class, 'createDiscussion']);
         Route::get('/categories', [TicketController::class, 'getCategories']);
+        Route::put('/ticket/{id}', [TicketController::class, 'updateTicket']);
+        Route::delete('/ticket/{id}', [TicketController::class, 'deleteTicket']);
+
+        Route::get('/admin/deleted-tickets', [TicketController::class, 'deletedTickets']); // Solo admin
+        Route::post('/admin/restore-ticket/{id}', [TicketController::class, 'restoreTicket']); // Solo admin
 
 
+        Route::post('/ticket/{id}/close', [TicketController::class, 'closeTicket']); // 👈 NUOVA
+        Route::post('/ticket/{id}/reopen', [TicketController::class, 'reopenTicket']); // 👈 NUOVA
+        Route::patch('/ticket/{id}/status', [TicketController::class, 'changeTicketStatus']); // 👈 NUOVA
     });
 });
