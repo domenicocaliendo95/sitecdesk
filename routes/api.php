@@ -25,9 +25,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 
-    Route::get('/test', function () {
+    Route::get('/stillalive', function () {
         return response()->json([
-            'message' => 'Hello World',
+            'message' => 'but barely breathing',
+            'status' => 'alive',
+            'timestamp' => now()->toISOString()
         ]);
     });
 
@@ -46,8 +48,13 @@ Route::prefix('v1')->group(function () {
         Route::delete('/users/{user}', fn () => response()->json(['todo' => true]));
 
         // API ticket
-        Route::get('/tickets', [TicketController::class, 'index']);
-        Route::get('/tickets/{ticket}', [TicketController::class, 'show']); // nuova rotta singolo ticket
+
+        Route::get('/alltickets', [TicketController::class, 'allTickets']);
+        Route::get('/ticket/{id}', [TicketController::class, 'showTicket']);
+        Route::post('/ticket', [TicketController::class, 'createTicket']);
         Route::post('/tickets/{ticket}/reply', fn () => response()->json(['todo' => true]));
+        Route::get('/categories', [TicketController::class, 'getCategories']);
+
+
     });
 });
