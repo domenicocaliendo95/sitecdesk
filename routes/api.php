@@ -41,11 +41,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard', fn () => response()->json(['todo' => true])); // da fare
 
         // API utenti (solo per admin, logic to be handled in controller)
-        Route::get('/users', [UserController::class, 'index']);
-        Route::get('/users/{user}', fn () => response()->json(['todo' => true]));
-        Route::post('/users', fn () => response()->json(['todo' => true]));
-        Route::put('/users/{user}', fn () => response()->json(['todo' => true]));
-        Route::delete('/users/{user}', fn () => response()->json(['todo' => true]));
 
         // API ticket
 
