@@ -130,10 +130,11 @@ class TicketController extends Controller
         $user = $request->user();
 
         // Validazione dei dati
-        $validated = $request->validate([
+        $rules = [
             'oggetto' => 'required|string|max:255',
             'corpo' => 'required|string',
             'categoria_id' => 'required|exists:categories,id',
+            'assegnato_a' => 'sometimes|nullable|exists:users,id',
             'allegati' => 'sometimes|array|max:5', // Ridotto a 5 per mobile
             'allegati.*' => [
                 'file',
@@ -141,12 +142,46 @@ class TicketController extends Controller
                 'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt',
                 'mimetypes:image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain'
             ],
-        ], [
+        ];
+
+        // Regole specifiche per ruolo
+        if ($user->role === 'cliente') {
+            // I clienti non possono assegnare ticket ad altri
+            unset($rules['assegnato_a']);
+        }
+
+        $validated = $request->validate($rules, [
             'allegati.*.mimes' => 'I file devono essere: immagini (JPG, PNG, GIF, WebP), PDF o documenti Office (DOC, DOCX, XLS, XLSX, TXT)',
             'allegati.*.mimetypes' => 'Tipo di file non supportato',
             'allegati.*.max' => 'Ogni file non può superare i 10MB',
             'allegati.max' => 'Puoi caricare massimo 5 allegati',
+            'assegnato_a.exists' => 'L\'utente selezionato non esiste',
         ]);
+
+        // Verifica che l'utente assegnato sia admin o collaboratore (se specificato)
+        $assegnatoA = null;
+        if (isset($validated['assegnato_a']) && $validated['assegnato_a'] !== null) {
+            $assignee = User::find($validated['assegnato_a']);
+            if (!$assignee || !in_array($assignee->role, ['admin', 'collaboratore'])) {
+                return response()->json([
+                    'error' => 'Puoi assegnare il ticket solo ad admin o collaboratori'
+                ], 422);
+            }
+            $assegnatoA = $validated['assegnato_a'];
+        } else {
+            // Comportamento di default per l'assegnazione
+            switch ($user->role) {
+                case 'admin':
+                case 'collaboratore':
+                    // Admin/collaboratori possono auto-assegnarsi o lasciare non assegnato
+                    $assegnatoA = $user->id;
+                    break;
+                case 'cliente':
+                    // I clienti creano ticket non assegnati
+                    $assegnatoA = null;
+                    break;
+            }
+        }
 
         try {
             // Creazione del ticket
@@ -156,8 +191,7 @@ class TicketController extends Controller
                 'categoria_id' => $validated['categoria_id'],
                 'creato_da' => $user->id,
                 'stato' => 'nuovo',
-                // Se l'utente è admin o collaboratore può auto-assegnarsi
-                'assegnato_a' => in_array($user->role, ['admin', 'collaboratore']) ? $user->id : null,
+                'assegnato_a' => $assegnatoA,
             ]);
 
             // Gestione allegati
@@ -192,6 +226,15 @@ class TicketController extends Controller
                 'creatore:id,name,cognome,email',
                 'assegnato:id,name,cognome,email',
                 'categoria:id,nome,descrizione'
+            ]);
+
+            // Log della creazione
+            \Log::info('Nuovo ticket creato', [
+                'ticket_id' => $ticket->id,
+                'oggetto' => $ticket->oggetto,
+                'creato_da' => $user->nome_completo,
+                'assegnato_a' => $ticket->assegnato ? $ticket->assegnato->nome_completo : 'Non assegnato',
+                'categoria' => $ticket->categoria->nome
             ]);
 
             return response()->json([
