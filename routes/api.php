@@ -64,5 +64,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/ticket/{id}/close', [TicketController::class, 'closeTicket']); // 👈 NUOVA
         Route::post('/ticket/{id}/reopen', [TicketController::class, 'reopenTicket']); // 👈 NUOVA
         Route::patch('/ticket/{id}/status', [TicketController::class, 'changeTicketStatus']); // 👈 NUOVA
+
+        Route::get('/users/assignable', [TicketController::class, 'getAssignableUsers']);
+
     });
 });

@@ -623,6 +623,45 @@ class TicketController extends Controller
     }
 
     /**
+     * Restituisce gli utenti disponibili per l'assegnazione
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getAssignableUsers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Solo admin e collaboratori possono vedere gli utenti assegnabili
+        if (!in_array($user->role, ['admin', 'collaboratore'])) {
+            return response()->json([
+                'error' => 'Non autorizzato'
+            ], 403);
+        }
+
+        $users = User::whereIn('role', ['admin', 'collaboratore'])
+            ->select('id', 'name', 'cognome', 'email', 'role')
+            ->orderBy('name')
+            ->get();
+
+        $usersData = $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'nome' => $user->name,
+                'cognome' => $user->cognome,
+                'nome_completo' => $user->name . ' ' . $user->cognome,
+                'email' => $user->email,
+                'role' => $user->role
+            ];
+        });
+
+        return response()->json([
+            'users' => $usersData,
+            'count' => $users->count()
+        ]);
+    }
+
+    /**
      * Verifica se l'utente può eliminare l'allegato
      *
      * @param Allegato $allegato
