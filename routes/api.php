@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserController;
@@ -61,6 +62,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/ticket/{id}/status', [TicketController::class, 'changeTicketStatus']); // 👈 NUOVA
 
         Route::get('/users/assignable', [TicketController::class, 'getAssignableUsers']);
+
+        Route::get('/ticket/attachment/{id}/download', [AttachmentController::class, 'download'])
+                ->name('ticket.download-attachment');
 
     });
 });
