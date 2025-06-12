@@ -14,6 +14,18 @@ use Illuminate\Support\Facades\Storage;
 class TicketController extends Controller
 {
     /**
+     * Genera l'URL di download per l'API
+     *
+     * @param $allegato
+     * @return string
+     */
+    private function getApiDownloadUrl($allegato): string
+    {
+        return url('/api/v1/ticket/attachment/' . $allegato->id . '/download');
+    }
+
+
+    /**
      * Restituisce tutti i ticket visibili per l'utente autenticato
      *
      * @param Request $request
@@ -105,7 +117,7 @@ class TicketController extends Controller
                         'size' => $allegato->size,
                         'size_formatted' => number_format($allegato->size / 1024, 2) . ' KB',
                         'created_at' => $allegato->created_at,
-                        'download_url' => route('ticket.download-attachment', $allegato->id)
+                        'download_url' => $this->getApiDownloadUrl($allegato)
                     ];
                 })
             ];
@@ -390,7 +402,7 @@ class TicketController extends Controller
                     'size' => $allegato->size,
                     'size_formatted' => number_format($allegato->size / 1024, 2) . ' KB',
                     'created_at' => $allegato->created_at,
-                    'download_url' => route('ticket.download-attachment', $allegato->id)
+                    'download_url' => $this->getApiDownloadUrl($allegato)
                 ];
             }),
 
@@ -415,7 +427,7 @@ class TicketController extends Controller
                             'size' => $allegato->size,
                             'size_formatted' => number_format($allegato->size / 1024, 2) . ' KB',
                             'created_at' => $allegato->created_at,
-                            'download_url' => route('ticket.download-attachment', $allegato->id)
+                            'download_url' => $this->getApiDownloadUrl($allegato)
                         ];
                     })
                 ];
@@ -625,7 +637,7 @@ class TicketController extends Controller
                             'size' => $allegato->size,
                             'size_formatted' => number_format($allegato->size / 1024, 2) . ' KB',
                             'created_at' => $allegato->created_at,
-                            'download_url' => route('ticket.download-attachment', $allegato->id)
+                            'download_url' => $this->getApiDownloadUrl($allegato)
                         ];
                     }),
                     'allegati_count' => $ticket->allegati->count(),
